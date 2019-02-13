@@ -3,6 +3,8 @@
 import h5py
 import numpy as np
 import os
+import sys
+
 import matplotlib
 matplotlib.rcParams['mathtext.default']='regular'
 matplotlib.rcParams['xtick.direction']='in'
@@ -21,9 +23,15 @@ DE = 0 # dual energy flag - 1 if the test was run with dual energy
 
 
 def plot_snapshot(snapshot):
-    f = h5py.File('./hdf5/'+str(snapshot)+'.h5', 'r')
+    hdf5_file = './hdf5/'+str(snapshot)+'.h5'
+    print(hdf5_file)
+    plot_snapshot_file(hdf5_file)
+
+
+def plot_snapshot_file(hdf5_file):
+    f = h5py.File(hdf5_file, 'r')
     head = f.attrs
-    nx = head['dims'][0]
+    nx, ny, nz = head['dims']
     gamma = head['gamma'][0]
     d  = np.array(f['density']) # mass density
     mx = np.array(f['momentum_x']) # x-momentum
@@ -41,24 +49,33 @@ def plot_snapshot(snapshot):
       p  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0)
       ge  = p/d/(gamma - 1.0)
 
-    plot_figure(nx, d, vx, p, ge, basename=dnameout+str(snapshot))
+    basename = os.path.basename(hdf5_file)
+    print(basename)
+    basename, _ = os.path.splitext(basename)
+    basename = os.path.join(dnameout, basename)
+
+    plot_figure(nx, d, vx, p, ge, basename=basename)
     f.close()
 
 
 def plot_figure(nx, d, vx, p, ge, basename='', plotsuffix='.png'):
     fig = plt.figure(figsize=(6,6))
+
     ax1 = plt.axes([0.1, 0.6, 0.35, 0.35])
     plt.axis([0, nx, 0, 1.1])
     ax1.plot(d, 'o', markersize=2, color='black')
     plt.ylabel('Density')
+
     ax2 = plt.axes([0.6, 0.6, 0.35, 0.35])
     plt.axis([0, nx, -0.1, 1.1])
     ax2.plot(vx, 'o', markersize=2, color='black')
     plt.ylabel('Velocity')
+
     ax3 = plt.axes([0.1, 0.1, 0.35, 0.35])
     plt.axis([0, nx, 0, 1.1])
     ax3.plot(p, 'o', markersize=2, color='black')
     plt.ylabel('Pressure')
+
     ax4 = plt.axes([0.6, 0.1, 0.35, 0.35])
     plt.axis([0, nx, 1.5, 3.7])
     ax4.plot(ge, 'o', markersize=2, color='black')
@@ -68,6 +85,8 @@ def plot_figure(nx, d, vx, p, ge, basename='', plotsuffix='.png'):
     plt.close(fig)
 
 
-for snapshot in range(100):
-    plot_snapshot(snapshot)
+if __name__ == "__main__":
+    hdf5_files = sys.argv[1:]
+    for snapshot_file in hdf5_files:
+        plot_snapshot_file(snapshot_file)
 
